@@ -1,0 +1,21 @@
+{
+  "source_doc": "org-chart.md",
+  "nodes": [
+    {"name": "Founder", "type": "ROLE", "description": "Sets pricing, signs anything customer-facing"},
+    {"name": "Alex Doyle", "type": "PERSON", "description": "Founder"},
+    {"name": "Ops Manager", "type": "ROLE", "description": "Owns day-to-day operations, budgets and sign-offs"},
+    {"name": "Sarah Chen", "type": "PERSON", "description": "Ops Manager"},
+    {"name": "Support Lead", "type": "ROLE", "description": "Runs the support rota and handles escalations"},
+    {"name": "Priya Patel", "type": "PERSON", "description": "Support Lead"}
+  ],
+  "edges": [
+    {"source": "Founder", "predicate": "held_by", "target": "Alex Doyle"},
+    {"source": "Ops Manager", "predicate": "held_by", "target": "Sarah Chen"},
+    {"source": "Support Lead", "predicate": "held_by", "target": "Priya Patel"}
+  ],
+  "aliases": [
+    {"entity": "Alex Doyle", "alias": "Alex"},
+    {"entity": "Sarah Chen", "alias": "Sarah"},
+    {"entity": "Priya Patel", "alias": "Priya"}
+  ]
+}

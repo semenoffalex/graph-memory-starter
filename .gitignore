@@ -1,0 +1,23 @@
+# secret hygiene
+.env*
+*.pem
+*.key
+*credentials*
+client_secret*.json
+*token*.json
+.mcp.json
+*.mcp.json
+.mcp.local.json
+
+# build artifacts
+graph.db
+__pycache__/
+
+# local
+.claude/
+demo-before/
+excalidraw.log
+STATE.md
+AGENTS.md
+CLAUDE.md
+.planning/

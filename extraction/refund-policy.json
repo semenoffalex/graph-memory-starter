@@ -1,0 +1,16 @@
+{
+  "source_doc": "refund-policy.md",
+  "nodes": [
+    {"name": "Refund approvals", "type": "POLICY",
+     "description": "Refunds over £500 need Ops Manager sign-off; under £500 any agent processes within 48h, original payment method only"},
+    {"name": "Ops Manager", "type": "ROLE",
+     "description": "Approves refunds over £500"}
+  ],
+  "edges": [
+    {"source": "Refund approvals", "predicate": "approved_by", "target": "Ops Manager"}
+  ],
+  "aliases": [
+    {"entity": "Refund approvals", "alias": "refund"},
+    {"entity": "Refund approvals", "alias": "refunds"}
+  ]
+}

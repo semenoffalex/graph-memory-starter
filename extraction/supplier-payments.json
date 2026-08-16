@@ -1,0 +1,13 @@
+{
+  "source_doc": "supplier-payments.md",
+  "nodes": [
+    {"name": "Supplier payments", "type": "POLICY",
+     "description": "30-day terms; payments over £2,000 need Founder sign-off; new suppliers registered in tooling inventory first"},
+    {"name": "Founder", "type": "ROLE", "description": "Signs off supplier payments over £2,000"}
+  ],
+  "edges": [
+    {"source": "Supplier payments", "predicate": "approved_by", "target": "Founder"},
+    {"source": "Supplier payments", "predicate": "references", "target": "Tooling inventory"}
+  ],
+  "aliases": []
+}

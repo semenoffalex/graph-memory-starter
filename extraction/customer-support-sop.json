@@ -1,0 +1,13 @@
+{
+  "source_doc": "customer-support-sop.md",
+  "nodes": [
+    {"name": "Customer support SOP", "type": "PROCESS",
+     "description": "Tickets answered within one business day; refunds under £500 processed by agents; escalation after two replies"},
+    {"name": "Support Lead", "type": "ROLE", "description": "Escalation point for complaints"}
+  ],
+  "edges": [
+    {"source": "Customer support SOP", "predicate": "references", "target": "Refund approvals"},
+    {"source": "Customer support SOP", "predicate": "references", "target": "Support Lead"}
+  ],
+  "aliases": []
+}

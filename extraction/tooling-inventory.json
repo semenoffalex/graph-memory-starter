@@ -1,0 +1,11 @@
+{
+  "source_doc": "tooling-inventory.md",
+  "nodes": [
+    {"name": "Tooling inventory", "type": "DOCUMENT",
+     "description": "The systems the company runs on, with owner, billing cycle and admin access per entry; the onboarding day-one checklist"}
+  ],
+  "edges": [],
+  "aliases": [
+    {"entity": "Tooling inventory", "alias": "tooling"}
+  ]
+}

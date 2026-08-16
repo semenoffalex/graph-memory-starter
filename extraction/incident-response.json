@@ -1,0 +1,15 @@
+{
+  "source_doc": "incident-response.md",
+  "nodes": [
+    {"name": "Incident response", "type": "PROCESS",
+     "description": "Incidents triaged by the Support Lead; severity-1 escalates to the Founder; write-up within 48h"}
+  ],
+  "edges": [
+    {"source": "Incident response", "predicate": "references", "target": "Support Lead"},
+    {"source": "Incident response", "predicate": "references", "target": "Founder"}
+  ],
+  "aliases": [
+    {"entity": "Incident response", "alias": "incident"},
+    {"entity": "Incident response", "alias": "incidents"}
+  ]
+}

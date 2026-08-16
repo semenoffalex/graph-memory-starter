@@ -1,0 +1,14 @@
+{
+  "source_doc": "onboarding-process.md",
+  "nodes": [
+    {"name": "Onboarding process", "type": "PROCESS",
+     "description": "First-week onboarding owned by the Ops Manager; day one is accounts and access; ends with a support shadowing shift"}
+  ],
+  "edges": [
+    {"source": "Onboarding process", "predicate": "references", "target": "Ops Manager"},
+    {"source": "Onboarding process", "predicate": "references", "target": "Tooling inventory"}
+  ],
+  "aliases": [
+    {"entity": "Onboarding process", "alias": "onboarding"}
+  ]
+}

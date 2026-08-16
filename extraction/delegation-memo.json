@@ -1,0 +1,14 @@
+{
+  "source_doc": "delegation-memo.md",
+  "nodes": [
+    {"name": "Sarah Chen", "type": "PERSON", "description": "On leave 1-31 March"},
+    {"name": "Marcus Webb", "type": "PERSON",
+     "description": "Covers Sarah Chen's sign-offs and approvals during her March leave; full operational authority"}
+  ],
+  "edges": [
+    {"source": "Sarah Chen", "predicate": "delegates_to", "target": "Marcus Webb"}
+  ],
+  "aliases": [
+    {"entity": "Marcus Webb", "alias": "Marcus"}
+  ]
+}
