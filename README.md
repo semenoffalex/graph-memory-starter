@@ -4,6 +4,14 @@ A knowledge graph your AI assistant reads before it answers.
 Three SQLite tables, one recursive query, one prompt hook. No server, no API key.
 Purpose: demonstrate the design's effectiveness so you can apply it to your own system.
 
+## Which one
+
+    rag/    works on notes as they are, matches meaning when words differ
+    graph   modelled docs, typed links, multi-hop answers walked by code
+
+Start with rag/. Move up when your questions chain facts across
+documents and you are willing to model for it.
+
 ## Prerequisites
 
 Python 3 (SQLite included). An AI coding assistant with prompt hooks, e.g. Claude Code.

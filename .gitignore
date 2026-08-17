@@ -11,6 +11,7 @@ client_secret*.json
 
 # build artifacts
 graph.db
+rag/rag.db
 __pycache__/
 
 # local
