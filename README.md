@@ -40,8 +40,8 @@ Then `/exit` and open Claude Code again, so the hook loads.
 
 ```
 Add the digest to my memory starter, one step at a time, and stop if a step fails.
-1. Merge the hooks from memory-starter/digest/hooks.json into .claude/settings.json here. Keep any permissions and model already in it.
-2. Open memory-starter/digest/config.json. Set "mode" to "headless". If claude -p does not run from this folder (try: claude -p "say ok"), set "mode" to "session" instead and tell me.
+1. Merge the three hooks from memory-starter/digest/hooks.json into .claude/settings.json here. Keep everything already in it, including the recall hook from lesson 1. Use python3 in the hook commands if that is the one that runs.
+2. Open memory-starter/digest/config.json. It ships as "session". If claude -p runs from this folder (try: claude -p "say ok"), set "mode" to "headless". If it does not, leave it and tell me.
 3. Tell me in three lines where the daily log will land and how to switch the digest off.
 ```
 
@@ -49,8 +49,8 @@ Then `/exit` and open Claude Code again.
 
 ### Which model does what
 
-    bge-small-en-v1.5   local, 67 MB, your CPU, no key. Turns text into 384
-                        numbers for the meaning leg of the search. Downloaded
+    bge-small-en-v1.5   local, 67 MB, your CPU, no key. Turns text into a
+                        384-dim vector for the meaning leg of the search. Downloaded
                         once on the first index build, by fastembed.
     Claude              distils a note into questions, writes the session
                         entry, answers you. Through claude -p on your
@@ -63,7 +63,7 @@ inside your notes never indexes itself.
 ### The two digest modes
 
     session    the filtered text waits in digest/pending/. Your next session
-               opens by writing the entry in front of you.
+               hands it to a background sub-agent, so you carry on working.
     headless   the hook starts claude -p with no window. The entry lands about
                a minute later, and your next session opens clean.
 
@@ -89,8 +89,9 @@ model reads it, so nothing is judged out by mistake.
 
 ### Switch it off
 
-Delete the hook lines from `.claude/settings.json`. Your notes and daily logs
-stay. The index is disposable, rebuild it any time.
+Take the hook entries back out of `.claude/settings.json`, the recall hook and
+the three digest ones. Your notes, your logs and the index all stay, and the
+index rebuilds any time.
 
 ## Prerequisites
 

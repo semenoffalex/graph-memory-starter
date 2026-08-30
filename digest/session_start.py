@@ -1,8 +1,9 @@
 """SessionStart hook: hand a staged session to this one to write up.
 
 Session mode only. When a session closed and left its text staged, this hands
-that text, the voice and one instruction to the session opening now, so you
-watch the entry being written instead of trusting it happened.
+that text, the voice and one instruction to the session opening now. The write
+up goes to a background sub-agent, so the session you are in carries on and is
+never waiting on it.
 
 In headless mode there is nothing to do here and nothing is printed.
 """
@@ -45,13 +46,15 @@ def main():
     ]
     if cfg["distil"]:
         steps.append(f'3. Run: python "{DISTIL}" "{notes}"')
-        steps.append("4. Tell me in one line that the last session is written up.")
-    else:
-        steps.append("3. Tell me in one line that the last session is written up.")
 
     body = (
-        "A session closed and left its text to be written up. Do this first, "
-        "before anything else.\n\n"
+        "A session closed and left its text to be written up.\n\n"
+        "Hand this to a background sub-agent NOW, before you answer anything else, "
+        "and then carry on with whatever I ask. Do not do it yourself and do not "
+        "make me wait for it. Spawn one background sub-agent with the steps, the "
+        "voice and the session text below, exactly as they are, then tell me in one "
+        "line that the last session is being written up.\n\n"
+        "=== the steps, for the sub-agent ===\n\n"
         + "\n".join(steps)
         + "\n\n=== how to write it ===\n\n"
         + common.PROMPT.read_text(encoding="utf-8")
