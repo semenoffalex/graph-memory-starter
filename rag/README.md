@@ -3,7 +3,8 @@
 A semantic layer over messy notes. One index, two search legs, no
 vector database, no API key. The model is 67 MB and runs on your CPU.
 
-Point your AI assistant at this folder and ask it to set it up.
+Point your AI assistant at this folder and ask it to set it up. The one paste
+that does it is in the repo README.
 
 ## What makes this different
 
@@ -26,9 +27,16 @@ Hits return with the lines around them; context lines wear a dot.
 Measured on my corpus: 3.1x retrieval quality over the standard build.
 The biggest single lever was the embedding model.
 
+## Which model does what
+
+    bge-small-en-v1.5   local, 67 MB, your CPU. Text into 384 numbers, for the
+                        meaning leg. Downloaded once on the first build.
+    Claude              distils a note into the questions it answers. Through
+                        claude -p, on your subscription.
+
 ## Setup
 
-    pip install fastembed
+    python -m pip install fastembed
     python build_index.py
     python search.py "your question"
 
@@ -51,4 +59,39 @@ was built from. Every row below is a real run.
 
     python build_index.py --corpus path/to/your/markdown
 
+Markdown files, subfolders included. Hidden folders, `.git`, `node_modules`,
+`__pycache__` and this starter's own folder are skipped, so a starter cloned
+inside your notes never indexes itself. A note in a subfolder is indexed under
+its path inside your notes, so `daily/2026-08-30.md` is found and read back as
+that.
+
 Rebuild any time. The files stay the truth; the index is disposable.
+
+## Distil
+
+    python distil.py path/to/your/markdown
+    python distil.py path/to/your/markdown --limit 20
+
+One short Claude call per note, so start with a folder of tens. Each answer is
+checked before it is kept: it needs a question and a quote, and the quote has
+to be in the note word for word. Anything else is dropped and named.
+
+A note already distilled is skipped unless it has changed. State lives in
+`distilled/.state.json`, keyed by the note's path with a sha256 of what was
+read. The index is rebuilt at the end.
+
+Which Claude it uses is `"model"` in `../digest/config.json`, sonnet by
+default.
+
+## The recall hook
+
+    hooks.json  ->  merge into .claude/settings.json
+
+`recall_hook.py` runs on every prompt you submit. It searches the index and
+hands the top five hits back as context, under about 1,500 characters, with a
+one-line note saying how many. It never blocks a prompt: no index, no hits, or
+any failure at all and it prints nothing.
+
+It is a fresh process each time, so it loads the embedding model before every
+prompt. Measured on a laptop: about 0.9 seconds with the meaning leg, under
+0.1 without it.

@@ -93,7 +93,21 @@ def show(db, rowid, position, legs):
     print()
 
 
+def utf8_out():
+    """Write UTF-8 whatever the console's code page is.
+
+    Windows consoles default to cp1252, which cannot encode an arrow, a curly
+    quote or a pound sign, and notes are full of them.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def main():
+    utf8_out()
     if len(sys.argv) < 2:
         sys.exit('usage: python search.py "your question"')
     query = " ".join(sys.argv[1:])

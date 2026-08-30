@@ -1,6 +1,7 @@
 """Build the index: chunk markdown on headings, index keywords and meaning.
 
 Reads ../corpus-before by default, plus any distilled entries in distilled/.
+Subfolders are included, so the digest's daily/ folder is indexed like any note.
 Writes rag.db next to this script. Run again any time; the index is disposable.
 """
 
@@ -8,16 +9,19 @@ import argparse
 import re
 import sqlite3
 import struct
+import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DB = HERE / "rag.db"
 CHUNK_BUDGET = 1600  # characters, roughly 400 tokens
+SKIP_DIRS = {".git", "node_modules", "__pycache__"}
 
 SCHEMA = """
 DROP TABLE IF EXISTS chunks;
 DROP TABLE IF EXISTS chunks_fts;
 DROP TABLE IF EXISTS vectors;
+DROP TABLE IF EXISTS meta;
 CREATE TABLE chunks (
     id INTEGER PRIMARY KEY,
     file TEXT NOT NULL,
@@ -31,6 +35,29 @@ CREATE VIRTUAL TABLE chunks_fts USING fts5(text, file, section);
 CREATE TABLE vectors (id INTEGER PRIMARY KEY, vec BLOB NOT NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
+
+
+def note_files(corpus):
+    """Every markdown file under the corpus, subfolders included.
+
+    Skipped: hidden files and folders, .git, node_modules, __pycache__, and
+    this starter's own folder when it has been cloned inside the notes.
+    """
+    root = Path(corpus).resolve()
+    starter = HERE.parent.resolve()
+    # the starter is skipped only when it sits INSIDE your notes, which is the
+    # case the rule exists for. A corpus inside the starter is the bundled demo
+    # folders, and those are meant to be indexed.
+    skip_starter = starter != root and root in starter.parents
+    out = []
+    for path in sorted(root.rglob("*.md")):
+        rel = path.relative_to(root)
+        if any(part.startswith(".") or part in SKIP_DIRS for part in rel.parts):
+            continue
+        if skip_starter and (starter == path.parent or starter in path.parents):
+            continue
+        out.append(path)
+    return out
 
 
 def sections(lines):
@@ -68,10 +95,14 @@ def chunk_file(path):
     return packed
 
 
-def parse_distilled(path):
-    """Read a distilled entry: source, questions, summary, rule, quote."""
+def parse_entry(text):
+    """Read a distilled entry: source, questions, summary, rule, quote.
+
+    distil.py checks its own output through this, so the writer and the reader
+    can never drift into two spellings of the format.
+    """
     entry = {"questions": []}
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         if line.startswith("source:"):
             entry["source"] = line.split(":", 1)[1].strip()
         elif line.startswith("- "):
@@ -85,11 +116,30 @@ def parse_distilled(path):
     return entry
 
 
+def parse_distilled(path):
+    """Read a distilled entry from a file."""
+    return parse_entry(path.read_text(encoding="utf-8"))
+
+
 def normalise(text):
     return " ".join(text.split())
 
 
+def utf8_out():
+    """Write UTF-8 whatever the console's code page is.
+
+    Windows consoles default to cp1252, which cannot encode an arrow, a curly
+    quote or a pound sign, and file names and notes are full of them.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def main():
+    utf8_out()
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus", default=str(HERE.parent / "corpus-before"))
     args = ap.parse_args()
@@ -100,11 +150,15 @@ def main():
     db.execute("INSERT INTO meta VALUES ('corpus', ?)", (str(corpus.resolve()),))
 
     docs = []  # (embed_text, row)
-    files = sorted(corpus.glob("*.md"))
+    files = note_files(corpus)
+    root = corpus.resolve()
     for path in files:
+        # the relative path is the file's name in the index, so a note in a
+        # subfolder can still be read back for context
+        rel = path.relative_to(root).as_posix()
         for section, s, e, text in chunk_file(path):
-            label = f"[{path.name} § {section}]"
-            row = (path.name, section, s, e, text, "chunk")
+            label = f"[{rel} § {section}]"
+            row = (rel, section, s, e, text, "chunk")
             docs.append((label + "\n" + text, row))
 
     dropped = 0
@@ -138,18 +192,21 @@ def main():
         )
 
     model_line = "keyword only (pip install fastembed for the meaning leg)"
-    try:
-        from fastembed import TextEmbedding
+    if not docs:
+        model_line = "nothing to index: no markdown found under the corpus"
+    else:
+        try:
+            from fastembed import TextEmbedding
 
-        model = TextEmbedding()  # default: BAAI/bge-small-en-v1.5
-        vecs = list(model.embed([t for t, _ in docs]))
-        for rowid, vec in enumerate(vecs, start=1):
-            norm = sum(x * x for x in vec) ** 0.5 or 1.0
-            blob = struct.pack(f"{len(vec)}f", *(x / norm for x in vec))
-            db.execute("INSERT INTO vectors (id, vec) VALUES (?,?)", (rowid, blob))
-        model_line = f"model {model.model_name} ({len(vecs[0])}d) + keyword sqlite fts5"
-    except ImportError:
-        pass
+            model = TextEmbedding()  # default: BAAI/bge-small-en-v1.5
+            vecs = list(model.embed([t for t, _ in docs]))
+            for rowid, vec in enumerate(vecs, start=1):
+                norm = sum(x * x for x in vec) ** 0.5 or 1.0
+                blob = struct.pack(f"{len(vec)}f", *(x / norm for x in vec))
+                db.execute("INSERT INTO vectors (id, vec) VALUES (?,?)", (rowid, blob))
+            model_line = f"model {model.model_name} ({len(vecs[0])}d) + keyword sqlite fts5"
+        except ImportError:
+            pass
 
     db.commit()
     db.close()

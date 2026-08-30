@@ -12,18 +12,102 @@ Purpose: demonstrate the design's effectiveness so you can apply it to your own 
 Start with rag/. Move up when your questions chain facts across
 documents and you are willing to model for it.
 
+## Set up
+
+Two pastes, both for Claude Code, opened in the folder you keep your notes in.
+The first is the RAG. The second is the digest, which turns every session you
+close into a note the RAG can find.
+
+Check Python first. In a terminal, try `python3 --version`, then
+`python --version`, then `py --version`. One of them prints a 3.x version. If
+none does, install Python from python.org with "Add to PATH" ticked.
+
+### Paste one, the RAG
+
+```
+Set up the memory starter for me, one step at a time, and stop if a step fails.
+1. Check Python 3 runs here (try python3, python, then py). If none runs, stop and tell me to install it from python.org with "Add to PATH" ticked.
+2. Clone https://github.com/Glitch-Cat-Club/graph-memory-starter into a folder called memory-starter (no git installed: download the zip from that page and unzip it as memory-starter), then run: python -m pip install fastembed
+3. Ask me which folder my markdown notes are in. Then run: python memory-starter/rag/build_index.py --corpus <that folder>
+4. Run: python memory-starter/rag/search.py "a question about my notes" and show me the top hits.
+5. Merge the recall hook from memory-starter/rag/hooks.json into .claude/settings.json here. Keep any permissions and model already in it. Use python3 in the hook command if that is the one that runs.
+6. Tell me in five lines what you did.
+```
+
+Then `/exit` and open Claude Code again, so the hook loads.
+
+### Paste two, the digest
+
+```
+Add the digest to my memory starter, one step at a time, and stop if a step fails.
+1. Merge the hooks from memory-starter/digest/hooks.json into .claude/settings.json here. Keep any permissions and model already in it.
+2. Open memory-starter/digest/config.json. Set "mode" to "headless". If claude -p does not run from this folder (try: claude -p "say ok"), set "mode" to "session" instead and tell me.
+3. Tell me in three lines where the daily log will land and how to switch the digest off.
+```
+
+Then `/exit` and open Claude Code again.
+
+### Which model does what
+
+    bge-small-en-v1.5   local, 67 MB, your CPU, no key. Turns text into 384
+                        numbers for the meaning leg of the search. Downloaded
+                        once on the first index build, by fastembed.
+    Claude              distils a note into questions, writes the session
+                        entry, answers you. Through claude -p on your
+                        subscription, so no API key here either.
+
+Markdown files, subfolders included. Hidden folders, `.git`, `node_modules`,
+`__pycache__` and this starter's own folder are skipped, so a starter cloned
+inside your notes never indexes itself.
+
+### The two digest modes
+
+    session    the filtered text waits in digest/pending/. Your next session
+               opens by writing the entry in front of you.
+    headless   the hook starts claude -p with no window. The entry lands about
+               a minute later, and your next session opens clean.
+
+One switch, `"mode"` in `digest/config.json`. Headless needs `claude` on your
+PATH.
+
+### The dials
+
+All of them are one line in `digest/config.json`, apart from the voice, which
+is `digest/digest-prompt.md`.
+
+    max_turns    30       how much of the session is read
+    max_chars    15000    the character budget, the end kept
+    min_turns    5        below this the session is not memory
+    model        sonnet   which Claude writes the entry
+    log_dir      daily    the folder inside your notes the entry lands in
+    distil       true     whether the entry feeds the index
+    mode         session  session or headless
+
+What is kept from a session is not a dial, it is code: your words and the
+replies. Tool calls, results, file dumps and thinking are dropped before any
+model reads it, so nothing is judged out by mistake.
+
+### Switch it off
+
+Delete the hook lines from `.claude/settings.json`. Your notes and daily logs
+stay. The index is disposable, rebuild it any time.
+
 ## Prerequisites
 
-Python 3 (SQLite included). An AI coding assistant with prompt hooks, e.g. Claude Code.
-Nothing to install.
+Python 3, SQLite included. Claude Code, or another assistant with prompt hooks.
+For the meaning leg of the search, `python -m pip install fastembed`. Without
+it the search runs keyword only and says so. The graph half needs nothing
+installed.
 
 ## Layout
 
+    rag/               the semantic layer: index, search, recall hook, distil
+    digest/            the session write up: hooks, config, prompt
     corpus/            8 modelled docs (front matter)
     corpus-before/     12 unstructured docs (the A/B control)
     extraction/        LLM output per doc: nodes, edges, aliases
     src/               schema.sql, build_graph.py, recall.py, recall_hook.py
-    hooks.json         copy into .claude/settings.json
+    hooks.json         the graph recall hook, copy into .claude/settings.json
     extract-prompt.md  the extraction prompt, for your own docs
 
 ## Modelling

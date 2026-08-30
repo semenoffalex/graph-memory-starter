@@ -22,3 +22,8 @@ STATE.md
 AGENTS.md
 CLAUDE.md
 .planning/
+
+# digest, local only
+digest/pending/
+digest/log/
+rag/distilled/.state.json
