@@ -26,12 +26,12 @@ none does, install Python from python.org with "Add to PATH" ticked.
 
 ```
 Set up the memory starter for me, one step at a time, and stop if a step fails.
-1. Check Python 3 runs here (try python3, python, then py). If none runs, stop and tell me to install it from python.org with "Add to PATH" ticked.
-2. Clone https://github.com/Glitch-Cat-Club/graph-memory-starter into a folder called memory-starter (no git installed: download the zip from that page and unzip it as memory-starter), then run: python -m pip install fastembed
+1. Check Python 3.10 or newer runs here (try python3, python, then py). If none runs, or the one that runs is older than 3.10, stop and tell me to install it from python.org with "Add to PATH" ticked.
+2. Clone https://github.com/Glitch-Cat-Club/graph-memory-starter into a folder called memory-starter here, inside this folder and nowhere else (no git installed: download the zip from that page and unzip it as memory-starter). Then run: python -m pip install fastembed
 3. Ask me which folder my markdown notes are in. Then run: python memory-starter/rag/build_index.py --corpus <that folder>
 4. Run: python memory-starter/rag/search.py "a question about my notes" and show me the top hits.
 5. Merge the recall hook from memory-starter/rag/hooks.json into .claude/settings.json here. Keep any permissions and model already in it. Use python3 in the hook command if that is the one that runs.
-6. Tell me in five lines what you did.
+6. Tell me in five lines what you did, and how to rebuild the index when I add notes.
 ```
 
 Then `/exit` and open Claude Code again, so the hook loads.
