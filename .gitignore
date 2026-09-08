@@ -27,3 +27,8 @@ CLAUDE.md
 digest/pending/
 digest/log/
 rag/distilled/.state.json
+.Rproj.user
+**/.Rproj.user
+R/*.html
+R/*.knit.md
+article.html

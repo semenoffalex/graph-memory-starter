@@ -1,0 +1,315 @@
+---
+title: "RAG на графах против поиска по текстам на локальных моделях"
+knit: quarto::quarto_render
+format:
+  html:
+    theme: cosmo
+    toc: false
+    embed-resources: true
+    fig-width: 9
+    fig-height: 5.2
+    fig-dpi: 150
+    fig-align: center
+lang: ru
+editor: source
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(gt)
+
+# TODO: make a categorical color scale for a fixed number of cathegories (see Wong for the recomendation of the maximum number)
+
+source("https://raw.githubusercontent.com/semenoffalex/MiscR/main/theme_wong.R")
+wong_set_style("sf")
+
+d <- read_csv(file.path("..", "notebooks", "eval_local_V2_results.csv")) |>
+  mutate(
+    model = recode(
+      model,
+      "hermes-3-llama-3.1-8b" = "llama-3.1-8b",
+      "google/gemma-4-e2b" = "gemma-4-e2b",
+      "llama-xlam-2-8b-fc-r-mlx" = "xLAM-2-8b"
+    ),
+    model = factor(
+      model,
+      levels = c("gpt-oss-20b", "llama-3.1-8b", "gemma-4-e2b", "xLAM-2-8b")
+    ),
+    condition = factor(condition, levels = c("search", "graph"))
+  )
+```
+
+Пару недель назад YouTube подкинул мне пятиминутный [ролик](https://www.youtube.com/watch?v=svvlT-nX6N8) с небольшого канала, где автор демонстрирует преимущества RAG на графах над обычным RAG поверх корпуса текстов.
+
+Пример довольно простой. LLM должна ответить на вопрос: "Кто должен подписать возврат клиенту на 800 фунтов в марте?". Ответ, естественно, содержится в предоставленных текстах, но для того, чтобы его добыть, нужно уметь в multi-hop reasoning, т.к. необходимая информация лежит в 3х разных местах:
+
+A)  инструкциях по возврату средств
+B)  списке сотрудников
+C)  календаре отпусков
+
+Для правильного ответа (Marcus Webb) модель должна по тексту инструкций понять, какое должностное лицо отвечает за возврат средств, затем посмотреть, находится ли оно на рабочем месте и, если нет, то кто его замещает. Простой поиск по ключевым словам (`refund`, `exceeding`, `£800`) задачу не решает, т.к. в релевантных для ответа документах нет по ним пересечений.
+
+Вот 3 шага, которые приводят к правильному ответу:
+
+-   Поиск по `refund exceeding £500` найдёт файл `customer-ops-handbook.md`, в котором содержится только упоминание должности (**Operations Manager**), без имени и сроков.
+
+-   Поиск по `Operations Manager` найдёт файл `team.md`, согласно которому эту должность занимает Sarah Chen. Упоминаний слов `refund` и `£800` в нём нет.
+
+-   E-mail `ooo-march-sarah.md` содержит информацию о том, что в марте она в отпуске и документы за неё подписывает `Marcus`. Опять же, `refund` и `Operations Manager` в нём не упоминаются, а фамилию Маркуса (Webb) надо брать из `team.md`.
+
+Простой же поиск найдёт в первую очередь файл с именем `refunds-policy-2024-superseded.md`, где прямо написано: возвраты свыше £250 --- director, ниже --- любой сотрудник. Пороги другие, роль другая, в шапке мелким шрифтом «superseded January 2026». Если модель на этом останавливается, она честно «нашла политику возвратов» и отвечает неправильно. Другой ловушкой является файл `expenses.md`: тоже содержит `£500` и `approval`, но про командировки.
+
+Таким образом, видно, что для правильного ответа модели придётся сопоставить факты, а не бездумно выдать содержимое документов, найденных по ключевым словам вопроса.
+
+## Исходный эксперимент
+
+Автор берёт 3 модели, "большую", "среднюю" и "маленькую", и подсовывает по 2 набора данных для RAG:
+
+1)  Тексты в папке (включая ненужные и содержащий ловушки), по которым модель может осуществлять поиск (grep/read)
+2)  Тексты, смоделированные под граф на основе предыдущих (онтология, front-matter), плюс код, вытаскивающий из них сущности и связи и скармливающий их на вход LLM.
+
+Причём код этот является детерминированным запросом на 400 токенов, который выполняется ДО того, как осуществляется вызов модели. По сути, результаты этого запроса скармливаются ей насильно, не давая ей шанса самой решать, какие данные брать.
+
+Полностью методология хорошо описана [самим автором](https://claude.ai/code/artifact/5f055546-f494-4dc4-a677-677e9dfcfff4) + для деталей есть [репозиторий на github](https://github.com/Glitch-Cat-Club/graph-memory-starter/tree/main), поэтому дальше углубляться я не буду. Результаты тестов, думаю, тоже уже должны быть очевидны.
+
+## Но есть нюанс
+
+В качестве "маленькой" модели автор использует Claude Haiku. Что в моём понимании является явным преуменьшением способностей данной модели, особенно если сравнивать с тем, что доступно на потребительском железе, купленном, как в моём случае, под другие нужды. Роли "средней" и "большой" моделей исполнили Sonnet и Fable 5 соответственно.
+
+Свой ПеКа я собирал под игры осенью 2024 - весной 2025, и там стоит Nvidia RTX 4070 Ti Super c 16Gb VRAM. Ноутбук: Macbook Air M2 24Gb покупался в первую очередь для мобильности. Поэтому "маленькими" лично для меня являются модели, которые можно запустить на этих устройствах, т.е. \~ 2-20b весов в квантизации 4_K_M. В связи с этим я решил воспроизвести тест на моделях, которые уже давно "пылились" на моём SSD.
+
+## Какие модели я взял
+
+В эксперименте участвовали следующие модели:
+
+-   GPT-OSS-20b, mxfp4, [HuggingFace](https://huggingface.co/openai/gpt-oss-20b)
+-   gemma-4-e2b, 8bit, [LMstudio](https://lmstudio.ai/models/google/gemma-4-e2b)
+-   llama-3.1-8b, 4bit, [HuggingFace](https://huggingface.co/mlx-community/Hermes-3-Llama-3.1-8B-4bit)
+-   xLAM-2-8b, 8bit, [HuggingFace](https://huggingface.co/mxmcc/Llama-xLAM-2-8b-fc-r-mlx-8Bit)
+
+Принцип их включения в тест очень простой: они уже лежали у меня на диске. GPT-OSS-20b выдаёт на моём ПеКа космические \~200 ток/с и вошла в состав только лишь за одно это. Ещё одну "старушку" --- llama 3.1, я активно тестировал в момент её выхода и в отличие от Mistral/Mixstral не удалил. C семейством Gemma-4 я вожусь уже давно, но по большей части на маке. По-хорошему, пора бы уже сдаться и удалить их, т.к. двузначные цифры в скорости выжимаются с большим трудом. Экспериментов накопилось на отдельную статью, после чего, скорее всего, большинство из них ждёт мусорная корзина. Четвёртую модель за авторством SalesForce я где-то подцепил случайно и, забегая вперёд, скажу, что она полностью оправдала своё название, т.к. единственная из всех выдумала название несуществующего файла, чтобы начать в нём поиски. Поэтому в тесте я её оставил по большей части как антипример.
+
+Каждая модель запускалась на Macbook Air M2 24Gb c контекстным окном в 8k.
+
+## Результаты
+
+Результаты получились весьма показательными:
+
+-   **Ни одна** модель не смогла ответить правильно без RAG на графе
+-   **Все модели** ответили правильно, когда он был добавлен. Даже Gemma-4-e2b
+-   **Средняя экономия токенов** \~ 3.5x
+-   Средний прирост скорости \~ 2.9x
+
+Вот тексты ответов каждой модели с графом и без:
+
+### gpt-oss-20b
+
+-   **search**: *The Operations Manager must sign off an £800 refund before Finance processes the payment.*
+
+-   **graph**: *Marcus Webb.*
+
+### llama-3.1-8b
+
+-   **search**: *Apologies for the confusion. Based on the limited information provided, my initial response about the Finance Director may not be accurate. To determine who would sign off on a £800 refund, I would need to search for relevant policies or p...* \[в логе обрезано до 240 символов --- дальше текст не сохранился.\]
+
+-   **graph**: *Sarah Chen, the Ops Manager, and Marcus Webb. The refund needs to be signed off by Sarah Chen as she is the Ops Manager, and Marcus Webb has full operational authority during her March leave.*
+
+### gemma-4-e2b
+
+-   **search**: *The refund must be signed off by the Operations Manager, as refunds exceeding £500 require their approval before Finance releases the payment.*
+
+-   **graph**: *Marcus Webb*
+
+### xLAM-2-8b
+
+-   **search**: *The notes contain insufficient evidence to determine who signs off on a refund.*
+
+-   **graph**: *The Ops Manager, Sarah Chen, is on leave from 1-31 March. According to the Refund approvals policy, refunds over £500 need Ops Manager sign-off. Since Sarah Chen is unavailable, Marcus Webb, who has full operational authority during her leave, will sign off the refund.*
+
+Ключевое отличие от исходного теста: действительно "маленькие" без предобработки данных в граф на вопрос ответить не смогли. Поэтому данный шаг кажется обязательным, если есть желание задействовать где-то модель с 2b параметров. Собственно он-то и является наиболее ёмким на выдумку и ухищрения. Что, на мой взгляд, только плюс, т.к. хорошо обработанные данные позволяют менять модели "как перчатки", высвобождая VRAM, RAM и прочие ресурсы компьютера на более полезные вещи.
+
+Детали по метрикам на картинках:
+
+```{r}
+#| label: fig-tokens
+#| fig-cap: "Всего токенов по моделям. Search суммирует все вызовы LLM агента. Graph — один вызов."
+
+## Graph: Total tokens by Model
+ggplot(d, aes(model, total_tokens, fill = condition)) +
+  geom_col(position = position_dodge(width = 0.78), width = 0.72) +
+  scale_fill_manual(
+    values = setNames(wong_pal(2), c("search", "graph"))) +
+  geom_text(
+    aes(label = total_tokens),
+    position = position_dodge(width = 0.78),
+    vjust = -0.35,
+    size = 3.2
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 3000, 1000),
+    labels = function(x) {
+      ifelse(x == 0, "0", paste0(x / 1000, "K"))
+    },
+    limits = c(0, 3000),
+    expand = expansion(mult = c(0, 0.04))
+  ) +
+  labs(title = "Всего токенов по моделям",
+       subtitle = "Search суммирует все вызовы LLM агента. Graph — один вызов.",
+       x = NULL,
+       y = NULL) +
+  theme_wong(style = "sf",
+             scales = FALSE) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    legend.justification = "center", # TODO: make this default in theme_wong()
+    legend.title = element_blank())
+```
+
+```{r}
+#| label: fig-time
+#| fig-cap: "Время выполнения по моделям. Округлено до секунды. Search включает grep/read."
+
+## Graph: Elapsed wall time by model
+ggplot(d, aes(model, elapsed_s, fill = condition)) +
+  geom_col(position = position_dodge(width = 0.78), width = 0.72) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.04))
+  ) +
+  scale_fill_manual(
+    values = setNames(wong_pal(2), c("search", "graph"))) +
+  geom_text(
+    aes(label = elapsed_s),
+    position = position_dodge(width = 0.78),
+    vjust = -0.35,
+    size = 3.2
+  ) +
+  labs(title = "Время выполнения по моделям",
+       subtitle = "Округлено до секунды. Search включает grep/read.",
+       x = NULL,
+       y = NULL) +
+  theme_wong(style = "sf",
+             scales = FALSE) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    legend.justification = "center", # TODO: make this default in theme_wong()
+    legend.title = element_blank())
+```
+
+И в табличке:
+
+```{r}
+#| label: tbl-results
+
+d |>
+  arrange(model, condition) |>
+  transmute(
+    model,
+    condition,
+    result = recode(result, correct = "✅", wrong = "❌"),
+    hops,
+    tool_calls,
+    docs_read,
+    total_tokens,
+    elapsed_s = round(elapsed_s, 1)
+  ) |>
+  gt() |>
+  cols_label(
+    model = "Модель",
+    condition = "Тип",
+    result = "Результат",
+    hops = "Hops",
+    tool_calls = "Tool calls",
+    docs_read = "Docs read",
+    total_tokens = "Tokens",
+    elapsed_s = "Wall time, с"
+  ) |>
+  cols_align(
+    align = "center",
+    columns = c(condition, result, hops)
+  ) |>
+  cols_align(
+    align = "right",
+    columns = c(tool_calls, docs_read, total_tokens, elapsed_s)
+  ) |>
+  cols_width(
+    model ~ px(140),
+    condition ~ px(90),
+    result ~ px(100),
+    hops ~ px(80),
+    tool_calls ~ px(170),
+    docs_read ~ px(180),
+    total_tokens ~ px(80),
+    elapsed_s ~ px(90)
+  ) |>
+  tab_header(
+    title = "Результаты локального прогона",
+    subtitle = "Search vs graph"
+  ) |>
+  opt_table_font(font = wong_resolve_family()) |>
+  tab_options(
+    table.font.color = wong_colors$ink,
+    table.background.color = wong_colors$panel,
+    heading.background.color = wong_colors$plot,
+    heading.align = "left",
+    heading.border.bottom.color = wong_colors$axis,
+    heading.border.bottom.width = px(1),
+    column_labels.background.color = wong_colors$plot,
+    column_labels.font.weight = "normal",
+    column_labels.border.top.width = px(0),
+    column_labels.border.bottom.color = wong_colors$axis,
+    column_labels.border.bottom.width = px(1),
+    table.border.top.width = px(0),
+    table.border.left.width = px(0),
+    table.border.right.width = px(0),
+    table.border.bottom.color = wong_colors$axis,
+    table.border.bottom.width = px(1),
+    table_body.hlines.color = wong_colors$grid,
+    table_body.hlines.width = px(1),
+    table_body.border.bottom.color = wong_colors$axis,
+    table_body.vlines.color = wong_colors$panel,
+    data_row.padding = px(7),
+    heading.padding = px(4),
+    table.width = px(980)
+  ) |>
+  tab_style(
+    style = cell_text(whitespace = "nowrap"),
+    locations = list(cells_column_labels(), cells_body())
+  ) |>
+  tab_style(
+    style = cell_text(color = wong_colors$ink, weight = "bold", size = px(16)),
+    locations = cells_title(groups = "title")
+  ) |>
+  tab_style(
+    style = cell_text(color = wong_colors$ink_light, size = px(13)),
+    locations = cells_title(groups = "subtitle")
+  ) |>
+  tab_style(
+    style = cell_text(color = wong_colors$ink),
+    locations = cells_column_labels()
+  ) |>
+  tab_style(
+    style = cell_fill(color = wong_colors$primary_pale),
+    locations = cells_body(columns = condition, rows = condition == "search")
+  ) |>
+  tab_style(
+    style = cell_fill(color = wong_colors$secondary_pale),
+    locations = cells_body(columns = condition, rows = condition == "graph")
+  )
+```
+
+Лично для меня этот мини-эксперимент стал первым результатом, где я могу подтвердить эффективность преобразования данных в графовый вид перед передачей их в LLM на собственных результатах, а не в качестве ссылки на статью вендора, занимающегося разработкой графовых БД и прочие "trust-me-bro" материалы.
+
+Это вдохновляет на дальнейшее погружение в тему. Которое, кстати, у автора исходного материала тоже обозначено.

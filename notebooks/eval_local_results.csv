@@ -1,0 +1,7 @@
+model,provider,condition,result,hops,tool_calls,docs_read,llm_calls,prompt_tokens,completion_tokens,total_tokens,answer,run_at
+hermes-3-llama-3.1-8b,openai_compat,search,wrong,0 of 3,2,0,3,1760,267,2027,"Apologies for the confusion. Based on the limited information provided, my initial response about the Finance Director may not be accurate.  To determine who would sign off on a £800 refund, I would need to search for relevant policies or p",
+hermes-3-llama-3.1-8b,openai_compat,graph,correct,3 of 3,0,0,1,414,41,455,"Sarah Chen, the Ops Manager, and Marcus Webb. The refund needs to be signed off by Sarah Chen as she is the Ops Manager, and Marcus Webb has full operational authority during her March leave.",
+google/gemma-4-e2b,openai_compat,search,wrong,1 of 3,2,0,3,1199,901,2100,"The refund must be signed off by the **Operations Manager**, as refunds exceeding £500 require their approval before Finance releases the payment.",2026-09-04T11:28:12
+google/gemma-4-e2b,openai_compat,graph,correct,1 of 3,0,0,1,446,358,804,Marcus Webb,2026-09-04T11:28:12
+gpt-oss-20b,openai_compat,search,wrong,1 of 3,2,1,3,2085,230,2315,The **Operations Manager** must sign off an £800 refund before Finance processes the payment.,2026-09-04T11:43:41
+gpt-oss-20b,openai_compat,graph,correct,2 of 3,0,0,1,468,115,583,Marcus Webb will sign the £800 refund off during Sarah Chen’s March leave.,2026-09-04T11:43:41

@@ -1,0 +1,9 @@
+run_at,model,condition,result,hops,tool_calls,docs_read,llm_calls,prompt_tokens,completion_tokens,total_tokens,elapsed_s,overall_tps,answer
+2026-09-04T14:07:24,gpt-oss-20b,search,wrong,1 of 3,2,1,3,2085,230,2315,105.125,22.02,The **Operations Manager** must sign off an £800 refund before Finance processes the payment.
+2026-09-04T14:07:24,gpt-oss-20b,graph,correct,1 of 3,0,0,1,468,106,574,23.354,24.58,Marcus Webb.
+2026-09-04T14:14:15,hermes-3-llama-3.1-8b,search,wrong,0 of 3,2,0,3,1760,267,2027,52.789,38.4,"Apologies for the confusion. Based on the limited information provided, my initial response about the Finance Director may not be accurate.  To determine who would sign off on a £800 refund, I would need to search for relevant policies or p"
+2026-09-04T14:14:15,hermes-3-llama-3.1-8b,graph,correct,3 of 3,0,0,1,414,41,455,12.405,36.68,"Sarah Chen, the Ops Manager, and Marcus Webb. The refund needs to be signed off by Sarah Chen as she is the Ops Manager, and Marcus Webb has full operational authority during her March leave."
+2026-09-04T14:23:16,google/gemma-4-e2b,search,wrong,1 of 3,2,0,3,1199,901,2100,89.684,23.42,"The refund must be signed off by the **Operations Manager**, as refunds exceeding £500 require their approval before Finance releases the payment."
+2026-09-04T14:23:16,google/gemma-4-e2b,graph,correct,1 of 3,0,0,1,446,358,804,35.752,22.49,Marcus Webb
+2026-09-04T14:30:49,llama-xlam-2-8b-fc-r-mlx,search,wrong,0 of 3,1,0,2,1544,40,1584,18.091,87.56,The notes contain insufficient evidence to determine who signs off on a refund.
+2026-09-04T14:30:49,llama-xlam-2-8b-fc-r-mlx,graph,correct,3 of 3,0,0,1,415,60,475,19.572,24.27,"The Ops Manager, Sarah Chen, is on leave from 1-31 March. According to the Refund approvals policy, refunds over £500 need Ops Manager sign-off. Since Sarah Chen is unavailable, Marcus Webb, who has full operational authority during her lea"
